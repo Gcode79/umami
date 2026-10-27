@@ -59,10 +59,21 @@ jobs:
           fi
           echo "DATABASE_URL injected; placeholder gone."
 
+      - name: Install dependencies (for migrations)
+        run: npx --yes pnpm@12.3.4 install --frozen-lockfile
+
+      - name: Run database migrations (session door)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          SESSION_URL=$(echo "$DATABASE_URL" | sed 's/:6543\//:5432\//')
+          DATABASE_URL="$SESSION_URL" pnpm exec prisma migrate deploy
+
       - name: Build (prebuilt)
         id: build
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SKIP_DB_MIGRATION: "1"
         run: |
           set -o pipefail
           vercel build --prod --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | tee build.log

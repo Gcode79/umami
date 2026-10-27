@@ -96,4 +96,6 @@ async function applyMigration() {
       }
     }
   }
+  await prisma.$disconnect();
+  process.exit(0);
 })();

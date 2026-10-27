@@ -32,12 +32,29 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${DATABASE_URL}|" .vercel/.env.production.local
+          python3 - <<'PYEOF'
+          import os
+          path = '.vercel/.env.production.local'
+          val = os.environ['DATABASE_URL'].strip()
+          lines = open(path).read().splitlines()
+          out = []
+          done = False
+          for ln in lines:
+              if ln.startswith('DATABASE_URL='):
+                  out.append('DATABASE_URL=' + val)
+                  done = True
+              else:
+                  out.append(ln)
+          if not done:
+              out.append('DATABASE_URL=' + val)
+          open(path, 'w').write('\n'.join(out) + '\n')
+          print('DATABASE_URL line replaced:', done)
+          PYEOF
           if grep -q '\[SENSITIVE\]' .vercel/.env.production.local; then
             echo "Placeholder still present in pulled env - aborting."
             exit 1
           fi
-          echo "DATABASE_URL line replaced; placeholder gone."
+          echo "DATABASE_URL injected; placeholder gone."
 
       - name: Build (prebuilt)
         env:
